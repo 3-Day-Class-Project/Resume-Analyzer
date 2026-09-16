@@ -3,15 +3,15 @@ Analyzer to aid in tailoring resumes to specific companies and positions availab
 
 # Get Started
 
-1) Open PowerShell or Command Prompt
+### 1) Open PowerShell or Command Prompt
 
-2) Make sure you are in your project directory:
+### 2) Make sure you are in your project directory:
 (cd <my-project>)
 
-3) Create the virtual environment in your terminal:
+### 3) Create the virtual environment in your terminal:
 python -m venv .venv
 
-4) Activate the environment
+### 4) Activate the environment
 
 ## Windows PowerShell
 venv\Scripts\activate
@@ -21,8 +21,8 @@ source venv/bin/activate
 
 Note: if error 'venv' could not be loaded appears, skip to step 5
 
-5) Install streamlit
+### 5) Install streamlit
 pip install streamlit
 
-6) Run the app
+### 6) Run the app
 streamlit run app.py
