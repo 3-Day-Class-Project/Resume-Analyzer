@@ -13,10 +13,10 @@ python -m venv .venv
 
 4) Activate the environment
 
-### Windows PowerShell
+## Windows PowerShell
 venv\Scripts\activate
 
-#### macOS/Linux
+## macOS/Linux
 source venv/bin/activate
 
 Note: if error 'venv' could not be loaded appears, skip to step 5
