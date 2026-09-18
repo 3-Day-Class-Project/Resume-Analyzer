@@ -15,9 +15,17 @@ if uploaded_file is not None:
         resume_text = extract_resume_text(uploaded_file)
         st.subheader("Extracted resume text")
         if resume_text:
-            st.text_area("Resume text", resume_text, height=400, label_visibility="collapsed")
+            st.text_area(
+                "Resume text",
+                resume_text,
+                height=400,
+                label_visibility="collapsed",
+            )
         else:
-            st.warning("The PDF was opened, but no selectable text was found. It may be scanned or image-only.")
+            st.warning(
+                "The PDF was opened, but no selectable text was found. "
+                "It may be scanned or image-only."
+            )
     except Exception as exc:
         st.error(f"Could not extract text from the uploaded PDF: {exc}")
 
@@ -31,17 +39,34 @@ if st.button("Analyze Resume"):
     else:
         try:
             result = analyze_resume(resume_text, job_description)
+
             st.metric("Match Score", f"{result['match_score']}%")
-            st.subheader("Matching Skills")
-            for skill in result['matching_skills']:
-                st.write(f"✓ {skill}")
+
+            st.subheader("Exact Skill Matches")
+            if result["matching_skills"]:
+                for skill in result["matching_skills"]:
+                    st.write(f"✓ {skill}")
+            else:
+                st.write("No exact requested skills were identified.")
+
+            st.subheader("Related Experience")
+            if result.get("related_skills"):
+                for item in result["related_skills"]:
+                    evidence = ", ".join(item["evidence"])
+                    st.write(f"~ {item['skill']} — related evidence: {evidence}")
+            else:
+                st.write("No related evidence identified.")
+
             st.subheader("Requested Skills Not Identified")
-            for skill in result['missing_skills']:
-                st.write(f"⚠ {skill}")
+            if result["missing_skills"]:
+                for skill in result["missing_skills"]:
+                    st.write(f"⚠ {skill}")
+            else:
+                st.write("No requested skills are completely missing.")
+
             st.subheader("Suggestions")
-            for suggestion in result['suggestions']:
+            for suggestion in result["suggestions"]:
                 st.write(f"• {suggestion}")
-        except NotImplementedError:
-            st.info("The integration shell is ready; parser/analyzer modules still need implementation.")
+
         except Exception as exc:
             st.error(f"Analysis could not be completed: {exc}")
