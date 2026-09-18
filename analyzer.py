@@ -1,58 +1,65 @@
 import re
 
 
-# Small, explicit vocabulary for the first prototype.
-# We can expand this after the basic end-to-end flow is working.
+# Canonical display name -> common ways the skill may appear in a resume/job post.
+# Keep this explicit for the prototype so matching behavior is easy to explain.
 SKILL_ALIASES = {
-    "python": ["python"],
-    "java": ["java"],
-    "c++": ["c++", "cpp"],
-    "c": [" c "],
-    "sql": ["sql"],
-    "git": ["git", "github"],
-    "docker": ["docker"],
-    "linux": ["linux"],
-    "javascript": ["javascript", "js"],
-    "html": ["html"],
-    "css": ["css"],
-    "streamlit": ["streamlit"],
-    "flask": ["flask"],
-    "sqlite": ["sqlite"],
-    "aws": ["aws", "amazon web services"],
-    "azure": ["azure"],
-    "machine learning": ["machine learning", "ml"],
-    "data analysis": ["data analysis", "data analytics"],
-    "communication": ["communication"],
-    "teamwork": ["teamwork", "team work", "collaboration"],
-    "problem solving": ["problem solving", "problem-solving"],
+    "Python": ["python"],
+    "Java": ["java"],
+    "C++": ["c++", "cpp"],
+    "C#": ["c#", "c sharp"],
+    "SQL": ["sql", "mysql", "postgresql", "postgres", "sql server"],
+    "Git": ["git", "github", "gitlab"],
+    "Docker": ["docker", "containerization", "containers"],
+    "Linux": ["linux", "ubuntu"],
+    "JavaScript": ["javascript", "java script", "js"],
+    "HTML": ["html"],
+    "CSS": ["css"],
+    "React": ["react", "react.js", "reactjs"],
+    "Node.js": ["node.js", "nodejs", "node js"],
+    "Streamlit": ["streamlit"],
+    "Flask": ["flask"],
+    "SQLite": ["sqlite"],
+    "AWS": ["aws", "amazon web services"],
+    "Azure": ["azure", "microsoft azure"],
+    "MATLAB": ["matlab"],
+    "Verilog": ["verilog", "systemverilog", "system verilog"],
+    "VHDL": ["vhdl"],
+    "FPGA": ["fpga", "field programmable gate array"],
+    "MIPS": ["mips", "mips assembly"],
+    "Machine Learning": ["machine learning", "ml"],
+    "Data Analysis": ["data analysis", "data analytics"],
+    "Communication": ["communication", "written communication", "verbal communication"],
+    "Teamwork": ["teamwork", "team work", "collaboration", "collaborative"],
+    "Problem Solving": ["problem solving", "problem-solving", "troubleshooting"],
 }
 
 
 def _normalize(text: str) -> str:
-    """Lowercase text and normalize whitespace for simple matching."""
-    return " " + re.sub(r"\s+", " ", text.lower()).strip() + " "
+    """Lowercase text and normalize whitespace for reliable matching."""
+    return re.sub(r"\s+", " ", text.lower()).strip()
 
 
 def _contains_skill(text: str, aliases: list[str]) -> bool:
-    """Return True when any alias appears in normalized text."""
+    """Return True when any alias appears as a standalone term/phrase."""
     for alias in aliases:
-        alias = alias.lower()
+        alias = alias.lower().strip()
 
-        # Symbols such as C++ do not work well with ordinary word boundaries,
-        # so use direct matching for those.
+        # Skill names with punctuation such as C++ and C# are easier and safer
+        # to detect with escaped literal matching plus loose boundaries.
         if any(ch in alias for ch in "+#"):
-            if alias in text:
-                return True
+            pattern = rf"(?<!\w){re.escape(alias)}(?!\w)"
         else:
             pattern = rf"(?<!\w){re.escape(alias)}(?!\w)"
-            if re.search(pattern, text):
-                return True
+
+        if re.search(pattern, text):
+            return True
 
     return False
 
 
 def _find_skills(text: str) -> list[str]:
-    """Return recognized skills found in text."""
+    """Return recognized canonical skill names found in text."""
     normalized = _normalize(text)
     return [
         skill
@@ -64,14 +71,13 @@ def _find_skills(text: str) -> list[str]:
 def analyze_resume(resume_text: str, job_description: str) -> dict:
     """Compare resume text with a job description.
 
-    Returns a dictionary containing:
+    Returns exactly:
       - match_score: integer percentage from 0-100
       - matching_skills: requested skills found in the resume
       - missing_skills: requested skills not identified in the resume
       - suggestions: truthful improvement suggestions
 
-    This first prototype intentionally does not invent experience. A missing
-    skill is flagged so the user can decide whether they genuinely possess it.
+    Missing skills are never presented as experience the applicant possesses.
     """
     if not isinstance(resume_text, str) or not resume_text.strip():
         raise ValueError("Resume text is empty.")
@@ -97,7 +103,6 @@ def analyze_resume(resume_text: str, job_description: str) -> dict:
     matching_skills = [
         skill for skill in required_skills if skill in resume_skills
     ]
-
     missing_skills = [
         skill for skill in required_skills if skill not in resume_skills
     ]
@@ -117,9 +122,8 @@ def analyze_resume(resume_text: str, job_description: str) -> dict:
 
     for skill in missing_skills:
         suggestions.append(
-            f"{skill.title()} is requested for this position but was not "
-            "identified on your resume. If you have this experience, "
-            "consider adding it."
+            f"{skill} is requested for this position but was not identified "
+            "on your resume. If you have this experience, consider adding it."
         )
 
     if not missing_skills:
