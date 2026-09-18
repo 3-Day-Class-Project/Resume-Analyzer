@@ -33,20 +33,93 @@ SKILL_ALIASES = {
     "Problem Solving": ["problem solving", "problem-solving", "troubleshooting"],
 }
 
-# Related evidence does NOT count as possessing the exact skill.
-# It is weaker supporting evidence and is worth half credit in the prototype score.
+# Related evidence supports a connection but is NOT treated as possession of the
+# exact requested skill. It receives half credit in the prototype score.
 RELATED_EVIDENCE = {
-    "Git": ["version control", "source control"],
-    "SQL": ["relational database", "relational databases", "database querying", "database queries"],
-    "Docker": ["containerization", "containerized application", "containerized applications", "containers"],
-    "Linux": ["unix", "shell scripting", "bash"],
-    "AWS": ["cloud computing", "cloud infrastructure"],
-    "Azure": ["cloud computing", "cloud infrastructure"],
-    "Machine Learning": ["predictive model", "predictive modeling", "classification model"],
-    "Data Analysis": ["data visualization", "data cleaning", "data processing"],
-    "Communication": ["presentations", "technical writing", "public speaking"],
-    "Teamwork": ["cross-functional", "worked with teams", "team projects"],
-    "Problem Solving": ["debugging", "root cause analysis"],
+    "Git": [
+        "version control",
+        "source control",
+        "repository management",
+        "code repository",
+        "code repositories",
+    ],
+    "SQL": [
+        "relational database",
+        "relational databases",
+        "database querying",
+        "database queries",
+        "database query",
+        "database management",
+        "database design",
+    ],
+    "Docker": [
+        "containerization",
+        "containerized application",
+        "containerized applications",
+        "containerized deployment",
+        "containers",
+    ],
+    "Linux": [
+        "unix",
+        "unix-based",
+        "shell scripting",
+        "shell script",
+        "bash",
+        "command line",
+        "terminal",
+    ],
+    "AWS": [
+        "cloud computing",
+        "cloud infrastructure",
+        "cloud deployment",
+        "cloud services",
+    ],
+    "Azure": [
+        "cloud computing",
+        "cloud infrastructure",
+        "cloud deployment",
+        "cloud services",
+    ],
+    "Machine Learning": [
+        "predictive model",
+        "predictive modeling",
+        "classification model",
+        "training models",
+        "model training",
+    ],
+    "Data Analysis": [
+        "data visualization",
+        "data cleaning",
+        "data processing",
+        "data interpretation",
+        "data reporting",
+    ],
+    "Communication": [
+        "presentations",
+        "technical writing",
+        "public speaking",
+        "documentation",
+        "technical documentation",
+    ],
+    "Teamwork": [
+        "cross-functional",
+        "worked with teams",
+        "worked on teams",
+        "team projects",
+        "group projects",
+        "collaborated with",
+    ],
+    "Problem Solving": [
+        "debugging",
+        "debugged",
+        "root cause analysis",
+        "root-cause analysis",
+        "diagnosed issues",
+        "diagnosing issues",
+        "resolved issues",
+        "resolving issues",
+        "fault isolation",
+    ],
 }
 
 
@@ -78,13 +151,11 @@ def _find_skills(text: str) -> list[str]:
 def _find_related_evidence(resume_text: str, required_skill: str) -> list[str]:
     """Return related phrases found for a required skill."""
     normalized = _normalize(resume_text)
-    evidence = []
-
-    for phrase in RELATED_EVIDENCE.get(required_skill, []):
-        if _contains_phrase(normalized, [phrase]):
-            evidence.append(phrase)
-
-    return evidence
+    return [
+        phrase
+        for phrase in RELATED_EVIDENCE.get(required_skill, [])
+        if _contains_phrase(normalized, [phrase])
+    ]
 
 
 def analyze_resume(resume_text: str, job_description: str) -> dict:
