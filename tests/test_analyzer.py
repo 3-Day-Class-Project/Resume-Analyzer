@@ -52,6 +52,28 @@ def test_related_experience_does_not_become_exact_match():
     assert {item["skill"] for item in result["related_skills"]} == {"Docker", "Git"}
 
 
+def test_broader_real_world_related_phrases():
+    resume = (
+        "Created technical documentation, debugged software, used the command line, "
+        "performed database design, and managed code repositories."
+    )
+    job = "Requires Communication, Problem Solving, Linux, SQL, and Git."
+    result = analyze_resume(resume, job)
+
+    assert result["matching_skills"] == []
+    assert result["missing_skills"] == []
+    assert result["match_score"] == 50
+
+    related_names = {item["skill"] for item in result["related_skills"]}
+    assert related_names == {
+        "Communication",
+        "Problem Solving",
+        "Linux",
+        "SQL",
+        "Git",
+    }
+
+
 def test_missing_skill_is_not_invented():
     resume = "Python and Git"
     job = "Python, Git, Docker"
