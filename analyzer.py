@@ -1,8 +1,7 @@
 import re
 
 
-# Canonical display name -> common ways the skill may appear in a resume/job post.
-# Keep this explicit for the prototype so matching behavior is easy to explain.
+# Canonical skill -> explicit names/aliases that count as an exact match.
 SKILL_ALIASES = {
     "Python": ["python"],
     "Java": ["java"],
@@ -10,7 +9,7 @@ SKILL_ALIASES = {
     "C#": ["c#", "c sharp"],
     "SQL": ["sql", "mysql", "postgresql", "postgres", "sql server"],
     "Git": ["git", "github", "gitlab"],
-    "Docker": ["docker", "containerization", "containers"],
+    "Docker": ["docker"],
     "Linux": ["linux", "ubuntu"],
     "JavaScript": ["javascript", "java script", "js"],
     "HTML": ["html"],
@@ -34,50 +33,76 @@ SKILL_ALIASES = {
     "Problem Solving": ["problem solving", "problem-solving", "troubleshooting"],
 }
 
+# Related evidence does NOT count as possessing the exact skill.
+# It is weaker supporting evidence and is worth half credit in the prototype score.
+RELATED_EVIDENCE = {
+    "Git": ["version control", "source control"],
+    "SQL": ["relational database", "relational databases", "database querying", "database queries"],
+    "Docker": ["containerization", "containerized application", "containerized applications", "containers"],
+    "Linux": ["unix", "shell scripting", "bash"],
+    "AWS": ["cloud computing", "cloud infrastructure"],
+    "Azure": ["cloud computing", "cloud infrastructure"],
+    "Machine Learning": ["predictive model", "predictive modeling", "classification model"],
+    "Data Analysis": ["data visualization", "data cleaning", "data processing"],
+    "Communication": ["presentations", "technical writing", "public speaking"],
+    "Teamwork": ["cross-functional", "worked with teams", "team projects"],
+    "Problem Solving": ["debugging", "root cause analysis"],
+}
+
 
 def _normalize(text: str) -> str:
     """Lowercase text and normalize whitespace for reliable matching."""
     return re.sub(r"\s+", " ", text.lower()).strip()
 
 
-def _contains_skill(text: str, aliases: list[str]) -> bool:
-    """Return True when any alias appears as a standalone term/phrase."""
-    for alias in aliases:
-        alias = alias.lower().strip()
-
-        # Skill names with punctuation such as C++ and C# are easier and safer
-        # to detect with escaped literal matching plus loose boundaries.
-        if any(ch in alias for ch in "+#"):
-            pattern = rf"(?<!\w){re.escape(alias)}(?!\w)"
-        else:
-            pattern = rf"(?<!\w){re.escape(alias)}(?!\w)"
-
+def _contains_phrase(text: str, phrases: list[str]) -> bool:
+    """Return True when any phrase appears as a standalone term/phrase."""
+    for phrase in phrases:
+        phrase = phrase.lower().strip()
+        pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
         if re.search(pattern, text):
             return True
-
     return False
 
 
 def _find_skills(text: str) -> list[str]:
-    """Return recognized canonical skill names found in text."""
+    """Return canonical skills explicitly found in text."""
     normalized = _normalize(text)
     return [
         skill
         for skill, aliases in SKILL_ALIASES.items()
-        if _contains_skill(normalized, aliases)
+        if _contains_phrase(normalized, aliases)
     ]
+
+
+def _find_related_evidence(resume_text: str, required_skill: str) -> list[str]:
+    """Return related phrases found for a required skill."""
+    normalized = _normalize(resume_text)
+    evidence = []
+
+    for phrase in RELATED_EVIDENCE.get(required_skill, []):
+        if _contains_phrase(normalized, [phrase]):
+            evidence.append(phrase)
+
+    return evidence
 
 
 def analyze_resume(resume_text: str, job_description: str) -> dict:
     """Compare resume text with a job description.
 
-    Returns exactly:
+    Returns:
       - match_score: integer percentage from 0-100
-      - matching_skills: requested skills found in the resume
-      - missing_skills: requested skills not identified in the resume
+      - matching_skills: exact requested skills found in the resume
+      - related_skills: related evidence for a requested skill
+      - missing_skills: requested skills with no exact or related evidence
       - suggestions: truthful improvement suggestions
 
-    Missing skills are never presented as experience the applicant possesses.
+    Scoring:
+      exact match = 1.0 point
+      related evidence = 0.5 point
+      missing = 0 points
+
+    Related evidence never claims that the applicant possesses the exact skill.
     """
     if not isinstance(resume_text, str) or not resume_text.strip():
         raise ValueError("Resume text is empty.")
@@ -91,6 +116,7 @@ def analyze_resume(resume_text: str, job_description: str) -> dict:
         return {
             "match_score": 0,
             "matching_skills": [],
+            "related_skills": [],
             "missing_skills": [],
             "suggestions": [
                 "No recognized skills were found in the job description yet. "
@@ -100,15 +126,28 @@ def analyze_resume(resume_text: str, job_description: str) -> dict:
 
     resume_skills = set(_find_skills(resume_text))
 
-    matching_skills = [
-        skill for skill in required_skills if skill in resume_skills
-    ]
-    missing_skills = [
-        skill for skill in required_skills if skill not in resume_skills
-    ]
+    matching_skills = []
+    related_skills = []
+    missing_skills = []
 
+    for skill in required_skills:
+        if skill in resume_skills:
+            matching_skills.append(skill)
+            continue
+
+        evidence = _find_related_evidence(resume_text, skill)
+        if evidence:
+            related_skills.append({
+                "skill": skill,
+                "evidence": evidence,
+            })
+        else:
+            missing_skills.append(skill)
+
+    exact_points = len(matching_skills)
+    related_points = 0.5 * len(related_skills)
     match_score = round(
-        len(matching_skills) / len(required_skills) * 100
+        (exact_points + related_points) / len(required_skills) * 100
     )
 
     suggestions = []
@@ -120,21 +159,30 @@ def analyze_resume(resume_text: str, job_description: str) -> dict:
             + "."
         )
 
+    for item in related_skills:
+        evidence_text = ", ".join(item["evidence"])
+        suggestions.append(
+            f"{item['skill']} is requested. Your resume shows related evidence "
+            f"({evidence_text}), but the exact skill is not explicitly listed. "
+            "If you have direct experience, consider naming it clearly."
+        )
+
     for skill in missing_skills:
         suggestions.append(
             f"{skill} is requested for this position but was not identified "
             "on your resume. If you have this experience, consider adding it."
         )
 
-    if not missing_skills:
+    if not related_skills and not missing_skills:
         suggestions.append(
-            "All recognized requested skills were identified on your resume. "
+            "All recognized requested skills were explicitly identified on your resume. "
             "Focus next on tailoring accomplishments and measurable results."
         )
 
     return {
         "match_score": match_score,
         "matching_skills": matching_skills,
+        "related_skills": related_skills,
         "missing_skills": missing_skills,
         "suggestions": suggestions,
     }
