@@ -8,6 +8,7 @@ def test_strong_match():
 
     assert result["match_score"] == 100
     assert result["missing_skills"] == []
+    assert result["related_skills"] == []
 
 
 def test_synonyms_are_recognized():
@@ -27,6 +28,28 @@ def test_partial_match():
     assert result["match_score"] == 50
     assert set(result["matching_skills"]) == {"Python", "Git"}
     assert set(result["missing_skills"]) == {"Docker", "SQL"}
+
+
+def test_related_experience_gets_half_credit():
+    resume = "Used version control and relational databases in class projects."
+    job = "Requires Git and SQL."
+    result = analyze_resume(resume, job)
+
+    assert result["match_score"] == 50
+    assert result["matching_skills"] == []
+    assert result["missing_skills"] == []
+
+    related_names = {item["skill"] for item in result["related_skills"]}
+    assert related_names == {"Git", "SQL"}
+
+
+def test_related_experience_does_not_become_exact_match():
+    resume = "Built containerized applications and used source control."
+    job = "Requires Docker and Git."
+    result = analyze_resume(resume, job)
+
+    assert result["matching_skills"] == []
+    assert {item["skill"] for item in result["related_skills"]} == {"Docker", "Git"}
 
 
 def test_missing_skill_is_not_invented():
