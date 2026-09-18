@@ -1,12 +1,14 @@
 import streamlit as st
 
-from resume_parser import extract_resume_text
 from analyzer import analyze_resume
+from database import get_recent_analyses, save_analysis
+from resume_parser import extract_resume_text
 
 st.set_page_config(page_title="AI Resume Analyzer")
 st.title("AI Resume Analyzer")
 
 uploaded_file = st.file_uploader("Upload your resume (PDF)", type=["pdf"])
+job_title = st.text_input("Job title (optional)")
 job_description = st.text_area("Paste the job description")
 
 resume_text = ""
@@ -40,6 +42,12 @@ if st.button("Analyze Resume"):
         try:
             result = analyze_resume(resume_text, job_description)
 
+            save_analysis(
+                resume_name=uploaded_file.name,
+                job_title=job_title,
+                match_score=result["match_score"],
+            )
+
             st.metric("Match Score", f"{result['match_score']}%")
 
             st.subheader("Exact Skill Matches")
@@ -68,5 +76,35 @@ if st.button("Analyze Resume"):
             for suggestion in result["suggestions"]:
                 st.write(f"• {suggestion}")
 
+            st.success("Analysis saved to history.")
+
         except Exception as exc:
             st.error(f"Analysis could not be completed: {exc}")
+
+st.divider()
+st.subheader("Recent Analyses")
+
+try:
+    recent_analyses = get_recent_analyses(limit=5)
+
+    if recent_analyses:
+        history_rows = [
+            {
+                "Resume": row["resume_name"],
+                "Job Title": row["job_title"] or "Not provided",
+                "Match Score": f"{row['match_score']}%",
+                "Analyzed": row["created_at"],
+            }
+            for row in recent_analyses
+        ]
+
+        st.dataframe(
+            history_rows,
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.caption("No saved analyses yet.")
+
+except Exception as exc:
+    st.warning(f"Could not load analysis history: {exc}")
