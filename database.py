@@ -59,6 +59,22 @@ def save_analysis(
         )
         conn.commit()
         return cursor.lastrowid
+    
+    
+def clear_analyses(db_path=DB_PATH):
+    """Clears all analyses on display"""
+    
+    init_db(db_path)
+    
+    with _connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """
+            DELETE FROM analyses
+            """
+        )
+        conn.commit()
+        
 
 
 def get_recent_analyses(limit: int = 10, db_path=DB_PATH):

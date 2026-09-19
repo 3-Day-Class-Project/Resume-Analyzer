@@ -1,8 +1,9 @@
 import streamlit as st
 
 from analyzer import analyze_resume
-from database import get_recent_analyses, save_analysis
+from database import get_recent_analyses, save_analysis, clear_analyses
 from resume_parser import extract_resume_text
+
 
 st.set_page_config(page_title="AI Resume Analyzer")
 st.title("AI Resume Analyzer")
@@ -105,6 +106,12 @@ try:
         )
     else:
         st.caption("No saved analyses yet.")
+    
+    
+    delete_analyses = clear_analyses()
+    st.button("Clear", on_click=clear_analyses(), type="primary")
 
 except Exception as exc:
     st.warning(f"Could not load analysis history: {exc}")
+    
+
