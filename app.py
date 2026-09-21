@@ -108,8 +108,7 @@ try:
         st.caption("No saved analyses yet.")
     
     
-    delete_analyses = clear_analyses()
-    st.button("Clear", on_click=clear_analyses(), type="primary")
+    st.button("Clear History", on_click=clear_analyses, type="primary")
 
 except Exception as exc:
     st.warning(f"Could not load analysis history: {exc}")
